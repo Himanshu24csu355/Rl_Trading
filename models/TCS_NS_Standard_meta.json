@@ -1,0 +1,13 @@
+{
+    "ticker": "TCS.NS",
+    "risk_level": "Standard",
+    "lambda_penalty": 0.0,
+    "total_timesteps": 10000,
+    "train_rows": 845,
+    "val_rows": 181,
+    "test_rows": 182,
+    "val_final_portfolio": 117295.12,
+    "val_return_pct": 17.3,
+    "val_total_trades": 6,
+    "model_file": "TCS_NS_Standard_ppo.zip"
+}

@@ -1,0 +1,13 @@
+{
+    "ticker": "TCS.NS",
+    "risk_level": "Medium",
+    "lambda_penalty": 1.0,
+    "total_timesteps": 15000,
+    "train_rows": 845,
+    "val_rows": 181,
+    "test_rows": 182,
+    "val_final_portfolio": 119607.19,
+    "val_return_pct": 19.61,
+    "val_total_trades": 6,
+    "model_file": "TCS_NS_Medium_ppo.zip"
+}
