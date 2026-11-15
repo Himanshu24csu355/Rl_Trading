@@ -332,7 +332,7 @@ with st.sidebar:
     )
     
     risk_info = RISK_LEVELS[selected_risk]
-    st.caption(f"**Penalty ($\lambda$):** `{risk_info['lambda']}` &bull; {risk_info['description']}")
+    st.caption(fr"**Penalty ($\lambda$):** `{risk_info['lambda']}` &bull; {risk_info['description']}")
 
     st.markdown("---")
 
@@ -631,11 +631,10 @@ if active_mode == MODE_BACKTEST:
             st.markdown("<br>", unsafe_allow_html=True)
 
             # Tabs
-            tab1, tab2, tab3, tab4 = st.tabs([
+            tab1, tab2, tab3 = st.tabs([
                 "📊 AI Trading Dashboard",
                 "⚖️ Strategy Benchmark & Risk Analysis",
-                "📜 Trade Execution Audit Log",
-                "🎓 College Project Defense & Viva Guide"
+                "📜 Trade Execution Audit Log"
             ])
 
             with tab1:
@@ -755,41 +754,6 @@ if active_mode == MODE_BACKTEST:
                 else:
                     st.info("No trading history recorded for this episode.")
 
-            with tab4:
-                st.markdown("## 🎓 B.Tech Project Defense & Viva Voce Guide")
-                with st.expander("1. Problem Statement & Motivation", expanded=True):
-                    st.markdown("""
-                    **The Fundamental Flaw in Standard Reinforcement Learning:**
-                    In conventional algorithmic trading with RL, agents maximize **Expected Return**:
-                    $$\\max_\\pi \\mathbb{E}_\\pi \\left[ \\sum_{t=0}^T \\gamma^t r_t \\right]$$
-                    While this maximizes long-term gains in expectation, financial markets exhibit fat tails and crashes. A standard agent may achieve high cumulative return while suffering an unbearable **50% drawdown**, triggering margin calls and liquidation.
-
-                    **The Solution:**
-                    We formulate a **Risk-Sensitive Reinforcement Learning** framework where the agent optimizes a risk-penalized utility function, prioritizing capital conservation, downside protection, and drawdown management.
-                    """)
-
-                with st.expander("2. Mathematical Formulation & Reward Function", expanded=True):
-                    st.markdown("""
-                    The trading process is formulated as an MDP $(\\mathcal{S}, \\mathcal{A}, \\mathcal{P}, \\mathcal{R}, \\gamma)$:
-                    - **State Space $\\mathcal{S} \\in \\mathbb{R}^{18}$:** 15 Technical features (Returns, Volatility, Moving Average Ratios, RSI, MACD, Bollinger Bands, ATR, Volume) + 3 Account metrics (Cash ratio, Holdings ratio, Current Drawdown).
-                    - **Action Space $\\mathcal{A} = \\{0: \\text{HOLD}, 1: \\text{BUY}, 2: \\text{SELL}\\}$**.
-                    - **Risk-Penalized Reward Function:**
-                    $$R_t = r_{\\text{portfolio}, t} - \\lambda \\cdot \\Omega_t - c \\cdot |\\Delta w_t|$$
-                    Where:
-                    - $r_{\\text{portfolio}, t} = \\frac{V_t - V_{t-1}}{V_{t-1}}$
-                    - $\\Omega_t = w_{\\text{down}} \\cdot (\\min(0, r_t))^2 + w_{\\text{dd}} \\cdot \\text{Drawdown}_t^2$
-                    - $\\lambda$: Low Risk ($\lambda = 1.8$), Medium Risk ($\lambda = 0.8$), High Risk ($\lambda = 0.2$), Standard PPO ($\lambda = 0.0$).
-                    - $c \\cdot |\\Delta w_t|$: 0.1% transaction fee to eliminate excessive churning.
-                    """)
-
-                with st.expander("3. Why Proximal Policy Optimization (PPO)?", expanded=True):
-                    st.markdown("""
-                    PPO uses a **Clipped Surrogate Objective**:
-                    $$L^{\\text{CLIP}}(\\theta) = \\hat{\\mathbb{E}}_t \\left[ \\min\\left(r_t(\\theta)\\hat{A}_t, \\text{clip}(r_t(\\theta), 1-\\epsilon, 1+\\epsilon)\\hat{A}_t\\right) \\right]$$
-                    - PPO avoids destructive policy updates in noisy financial time series.
-                    - Provides stable, continuous actor-critic policy optimization without requiring second-order Hessian calculations.
-                    """)
-
 
 # ==============================================================================
 # MODE B: CURRENT MARKET DECISION SUPPORT (NEW)
@@ -837,14 +801,6 @@ else:
             expl = cmd_res.get("explanation", {})
             probs = cmd_res.get("action_probabilities", {})
             lookback_bars = cmd_res.get("total_lookback_bars", len(cmd_res.get("feature_df", [])))
-            
-            # Disclaimers & Session Freshness Banner
-            st.markdown(f"""
-            <div class="disclaimer-box">
-                <b>⚠️ Educational Simulation Notice:</b> This is an AI-powered educational decision support tool operating on simulated virtual capital. 
-                It does not constitute financial advice, an investment recommendation, or a guaranteed price prediction. No real financial orders are placed.
-            </div>
-            """, unsafe_allow_html=True)
             
             # Session & Freshness Metadata
             freshness_str = cmd_res.get("freshness_status", "UNKNOWN")
