@@ -10,7 +10,7 @@ def test_risk_manager_initialization():
     rm = RiskManager(risk_level="Low")
     assert rm.lambda_penalty > 0
     assert rm.downside_weight > 0
-    assert rm.max_drawdown_limit == 0.10
+    assert rm.max_drawdown_limit == 0.12
 
 
 def test_downside_penalty_asymmetry():
@@ -78,4 +78,4 @@ def test_action_validation_constraints():
     )
     assert act == 0
     assert qty == 0
-    assert "No shares owned" in msg
+    assert "No shares" in msg

@@ -1,13 +1,14 @@
 {
     "ticker": "RELIANCE.NS",
     "risk_level": "Low",
-    "lambda_penalty": 2.5,
-    "total_timesteps": 12000,
+    "lambda_penalty": 1.8,
+    "total_timesteps": 15000,
+    "trained_timestamp": "2026-11-15 15:39:36",
     "train_rows": 845,
     "val_rows": 181,
     "test_rows": 182,
-    "val_final_portfolio": 115680.63,
-    "val_return_pct": 15.68,
-    "val_total_trades": 8,
+    "val_final_portfolio": 100000.0,
+    "val_return_pct": 0.0,
+    "val_total_trades": 0,
     "model_file": "RELIANCE_NS_Low_ppo.zip"
 }

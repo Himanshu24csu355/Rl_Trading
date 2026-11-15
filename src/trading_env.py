@@ -189,7 +189,13 @@ class RiskSensitiveTradingEnv(gym.Env):
         
         # 5. Compute Risk-Sensitive Reward
         # Reward = Step Return - lambda * Risk Penalty - Friction
-        risk_penalty = self.risk_manager.compute_risk_penalty(step_return, self.portfolio_value)
+        holdings_val = self.shares * next_price
+        holdings_ratio = float(np.clip(holdings_val / max(1e-8, self.portfolio_value), 0.0, 1.0))
+        risk_penalty = self.risk_manager.compute_risk_penalty(
+            step_return=step_return,
+            current_portfolio_value=self.portfolio_value,
+            holdings_ratio=holdings_ratio
+        )
         friction_penalty = (fee_paid / self.portfolio_value) if self.portfolio_value > 0 else 0.0
         
         # Penalty for invalid attempted action (discourage agent from attempting prohibited moves)

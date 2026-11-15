@@ -1,4 +1,5 @@
-"""Script to pre-train and verify genuine PPO models across risk profiles.
+"""Script to pre-train and verify all 16 model combinations across 4 stocks and 4 risk profiles.
+Ensures zero missing models for RELIANCE.NS, TCS.NS, INFY.NS, and HDFCBANK.NS.
 """
 
 import sys
@@ -7,40 +8,43 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import SUPPORTED_TICKERS, FAST_DEMO_TIMESTEPS
-from src.train_model import train_ppo_agent
+from config import SUPPORTED_TICKERS, FAST_DEMO_TIMESTEPS, RISK_LEVELS
+from src.train_model import train_ppo_agent, get_model_path
 from src.utils import logger
 
 
-def train_initial_suite():
-    """Trains a complete suite of genuine risk-sensitive and benchmark models."""
+def train_complete_suite():
+    """Trains any missing models in the complete 4x4 matrix."""
     logger.info("==================================================")
-    logger.info("PRE-TRAINING GENUINE RISK-SENSITIVE PPO MODELS")
+    logger.info("CHECKING & PRE-TRAINING COMPLETE 16-MODEL SUITE")
     logger.info("==================================================")
     
-    # 1. Primary Stock: RELIANCE.NS across all risk levels + Standard
-    primary_ticker = "RELIANCE.NS"
-    for risk in ["Low", "Medium", "High", "Standard"]:
-        logger.info(f"--- Training {primary_ticker} [{risk}] ---")
-        train_ppo_agent(
-            ticker=primary_ticker,
-            risk_level=risk,
-            total_timesteps=12000,
-            save=True
-        )
+    tickers = list(SUPPORTED_TICKERS.keys())
+    risk_levels = list(RISK_LEVELS.keys())
+    
+    total_needed = len(tickers) * len(risk_levels)
+    trained_count = 0
+    
+    for ticker in tickers:
+        for risk in risk_levels:
+            model_path = get_model_path(ticker, risk)
+            if model_path.exists():
+                logger.info(f"Model already exists: {model_path.name} (Skipping)")
+                trained_count += 1
+                continue
+                
+            logger.info(f"--- Training Missing Model: {ticker} [{risk}] ---")
+            train_ppo_agent(
+                ticker=ticker,
+                risk_level=risk,
+                total_timesteps=10000,
+                save=True
+            )
+            trained_count += 1
+            logger.info(f"Progress: {trained_count}/{total_needed} models ready.")
 
-    # 2. Secondary Key Bluechips: TCS.NS, INFY.NS, HDFCBANK.NS with Medium risk
-    for sec_ticker in ["TCS.NS", "INFY.NS", "HDFCBANK.NS"]:
-        logger.info(f"--- Training {sec_ticker} [Medium] ---")
-        train_ppo_agent(
-            ticker=sec_ticker,
-            risk_level="Medium",
-            total_timesteps=10000,
-            save=True
-        )
-
-    logger.info("All suite models trained and saved successfully in models/ directory!")
+    logger.info("All 16 models in the complete suite are verified and ready in models/ directory!")
 
 
 if __name__ == "__main__":
-    train_initial_suite()
+    train_complete_suite()

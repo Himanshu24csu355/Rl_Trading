@@ -1,13 +1,16 @@
 """PPO Reinforcement Learning Training Pipeline using Stable-Baselines3.
 Trains risk-sensitive trading agents conditioned on specified risk tolerances.
+Provides model inspection, action probability extraction, and compatibility verification.
 """
 
 import os
 import json
 import argparse
+from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Dict, Any, Optional
 import numpy as np
+import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -49,6 +52,70 @@ def get_metadata_path(ticker: str, risk_level: str) -> Path:
     """Returns the standardized file path for model training metadata."""
     clean_ticker = ticker.replace("^", "").replace(".", "_")
     return MODELS_DIR / f"{clean_ticker}_{risk_level}_meta.json"
+
+
+def get_model_info(ticker: str, risk_level: str) -> Dict[str, Any]:
+    """Inspects whether a pre-trained model and metadata exist for the given combination."""
+    model_path = get_model_path(ticker, risk_level)
+    meta_path = get_metadata_path(ticker, risk_level)
+    
+    if not model_path.exists():
+        return {
+            "exists": False,
+            "ticker": ticker,
+            "risk_level": risk_level,
+            "model_path": str(model_path),
+            "message": f"No pre-trained model found for {ticker} ({risk_level})."
+        }
+        
+    metadata = {}
+    if meta_path.exists():
+        try:
+            with open(meta_path, "r") as f:
+                metadata = json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read metadata from {meta_path}: {e}")
+            
+    stat = model_path.stat()
+    last_modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+    
+    return {
+        "exists": True,
+        "ticker": ticker,
+        "risk_level": risk_level,
+        "model_path": str(model_path),
+        "file_size_kb": round(stat.st_size / 1024, 1),
+        "last_modified": last_modified,
+        "metadata": metadata,
+        "total_timesteps": metadata.get("total_timesteps", "Unknown"),
+        "val_return_pct": metadata.get("val_return_pct", "N/A"),
+        "trained_date": metadata.get("trained_timestamp", last_modified)
+    }
+
+
+def get_policy_action_distribution(
+    model: PPO,
+    obs: np.ndarray
+) -> Tuple[int, Dict[str, float], float]:
+    """Extracts raw deterministic action, full softmax action probability distribution,
+    and genuine policy confidence from the PPO actor network.
+    
+    Returns:
+        (raw_action, action_probabilities_dict, confidence_score)
+    """
+    obs_tensor, _ = model.policy.obs_to_tensor(obs)
+    with torch.no_grad():
+        distribution = model.policy.get_distribution(obs_tensor)
+        probs = distribution.distribution.probs.detach().cpu().numpy()[0]
+        
+    raw_action = int(np.argmax(probs))
+    prob_dict = {
+        "HOLD": round(float(probs[0]), 4),
+        "BUY": round(float(probs[1]), 4),
+        "SELL": round(float(probs[2]), 4)
+    }
+    confidence = float(np.max(probs))
+    return raw_action, prob_dict, confidence
 
 
 def train_ppo_agent(
@@ -97,7 +164,7 @@ def train_ppo_agent(
     )
     
     # 4. Train model
-    callback = TrainingProgressCallback(check_freq=5000)
+    callback = TrainingProgressCallback(check_freq=4000)
     model.learn(total_timesteps=total_timesteps, callback=callback)
     logger.info(f"Training completed successfully for {ticker} ({risk_level}).")
     
@@ -116,11 +183,13 @@ def train_ppo_agent(
     val_final_portfolio = val_env.portfolio_value
     val_return_pct = (val_final_portfolio - val_env.initial_capital) / val_env.initial_capital
     
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     metadata = {
         "ticker": ticker,
         "risk_level": risk_level,
         "lambda_penalty": RISK_LEVELS[risk_level]["lambda"],
         "total_timesteps": total_timesteps,
+        "trained_timestamp": now_str,
         "train_rows": len(train_df),
         "val_rows": len(val_df),
         "test_rows": len(test_df),
